@@ -2,11 +2,11 @@ import numpy as np
 import pygame
 
 BLACK = (0, 0, 0)
-
+BLUE = (0, 0, 255)
 
 class Particle(pygame.sprite.Sprite):
     def __init__(
-        self, pos: np.ndarray, vel: np.ndarray, size: int, color: tuple[int, int, int]
+        self, pos: np.ndarray, vel: np.ndarray, size: int, color: tuple[int, int, int] = BLUE
     ) -> None:
         pygame.sprite.Sprite.__init__(self)
 
