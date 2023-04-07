@@ -10,8 +10,9 @@ def main():
     pygame.display.set_mode((640, 480))
 
     ctx = sim.SimulationContext()
-    p1 = particle.Particle(np.array([100, 400]), np.array([0, 0]), 30)
-    ctx.add_object(p1)
+    p1 = particle.Particle(np.array([100, 400]), np.array([0, 0]), size=30)
+    p2 = particle.Particle(np.array([100, 200]), np.array([0, 0]), size=30)
+    ctx.add_object(p1, p2)
 
     while pygame.get_init():
         ctx.update()
