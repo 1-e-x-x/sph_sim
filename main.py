@@ -10,11 +10,11 @@ def main():
     pygame.display.set_mode((640, 480))
 
     ctx = sim.SimulationContext()
-    p1 = particle.Particle(1, np.array([100, 400]), np.array([0, 0]))
-    p11 = particle.Particle(1, np.array([110, 400]), np.array([0, 0]))
-    p111 = particle.Particle(1, np.array([120, 400]), np.array([0, 0]))
-    p1111 = particle.Particle(1, np.array([130, 400]), np.array([0, 0]))
-    p11111 = particle.Particle(1, np.array([140, 400]), np.array([0, 0]))
+    p1 = particle.Particle(1, np.array([100, 400]), np.array([0.1, 0]))
+    p11 = particle.Particle(1, np.array([131, 400]), np.array([-0.1, 0]))
+    p111 = particle.Particle(1, np.array([162, 400]), np.array([0.1, 0]))
+    p1111 = particle.Particle(1, np.array([193, 400]), np.array([-0.1, 0]))
+    p11111 = particle.Particle(1, np.array([240, 400]), np.array([0, 0]))
     p2 = particle.Particle(1, np.array([100, 200]), np.array([0, 0]))
     ctx.add_object(p1, p11, p111, p1111, p11111, p2)
 
