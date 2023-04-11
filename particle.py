@@ -2,127 +2,136 @@ import numpy as np
 import pygame
 from scipy import constants
 
+
 BLACK = (0, 0, 0)
 BLUE = (0, 0, 255)
 
+SMOOTHER = 5
 
-def pressure_force(original_particle, other_particle):
-    distance = abs(
-        np.linalg.norm(original_particle.position)
-        - np.linalg.norm(other_particle.position)
+
+def calculate_density(particle, neighbors):
+    return (
+        (315 * particle.mass)
+        / (64 * constants.pi * SMOOTHER**9)
+        * sum(
+            [
+                (
+                    SMOOTHER**2
+                    - abs(np.linalg.norm(particle.position) - np.linalg.norm(x.position))
+                    ** 2
+                )
+                ** 3
+                for x in neighbors if x != particle
+            ]
+        )
     )
 
+
+def calculate_pressure(particle):
+    return 20 * (particle.density - 1)
+
+
+def calculate_density_force(particle, neighbors):
     return (
-        -(45 * original_particle.mass)
-        / (constants.pi * original_particle.size)
-        * -(other_particle.position - original_particle.position)
-        / distance
-        * (original_particle.pressure + other_particle.pressure)
-        / (2 * other_particle.density)
-        * (original_particle.size - distance) ** 2
+        -(45 * particle.mass)
+        / (constants.pi * SMOOTHER**6)
+        * sum(
+            [
+                -(x.position - particle.position)
+                / abs(np.linalg.norm(particle.position) - np.linalg.norm(x.position))
+                * (particle.pressure + x.pressure)
+                / (2 * x.density)
+                * (
+                    SMOOTHER
+                    - abs(
+                        np.linalg.norm(particle.position) - np.linalg.norm(x.position)
+                    )
+                )
+                ** 2
+                for x in neighbors if x != particle
+            ]
+        )
     )
 
 
-def viscous_force(original_particle, other_particle):
+def calculate_viscous_force(particle, neighbors):
     return (
-        (22.5 * original_particle.mass)
-        / (constants.pi * original_particle.size**6)
-        * (other_particle.velocity - original_particle.velocity)
-        / other_particle.density
-        * (
-            original_particle.size
-            - abs(
-                np.linalg.norm(original_particle.position)
-                - np.linalg.norm(other_particle.position)
-            )
+        (45 * 0.5 * particle.mass)
+        / (constants.pi * SMOOTHER**6)
+        * sum(
+            [
+                (x.velocity - particle.velocity)
+                / x.density
+                * (
+                    SMOOTHER
+                    - abs(
+                        np.linalg.norm(particle.position) - np.linalg.norm(x.position)
+                    )
+                )
+                for x in neighbors if x != particle
+            ]
         )
     )
 
 
 class Particle(pygame.sprite.Sprite):
-    def __init__(
-        self,
-        pos,
-        vel,
-        mass=1.0,
-        size=30,
-        color=BLUE,
-    ):
+    def __init__(self, mass, position, velocity, size=30, color=BLUE):
         pygame.sprite.Sprite.__init__(self)
 
-        self.size = size
         self.mass = mass
-
-        self.position = pos.astype(np.float64)
-        self.velocity = vel.astype(np.float64)
-        self.new_position = self.position.copy()
-        self.new_velocity = self.velocity.copy()
-        self.density = (315 * self.mass) / (64 * constants.pi * self.size**9)
-        self.pressure = 20 * (self.density - self.mass)
+        self.position = position.astype(np.float64)
+        self.velocity = velocity.astype(np.float64)
 
         self.image = pygame.surface.Surface((size, size))
         pygame.draw.circle(self.image, color, (size // 2, size // 2), size // 2, size)
         self.rect = self.image.get_rect()
-        self.update_display()
+
+    def pre_update(self, neighbors):
+        flattened = self.flatten_neighbors(neighbors)
+        self.density = calculate_density(self, flattened)
+        self.pressure = calculate_pressure(self)
 
     def update(self, time_step, neighbors):
         force = np.array([0.0, -constants.g])
 
-        for group in neighbors:
-            g = pygame.sprite.Group()
-            for particle in group.sprites():
-                # REALLY bad solution
-                if (particle.position == self.position).all():
-                    continue
+        flattened = self.flatten_neighbors(neighbors)
 
-                if (
-                    abs(
-                        np.linalg.norm(self.position)
-                        - np.linalg.norm(particle.position)
-                    )
-                    > self.size
-                ):
-                    continue
+        print('d', calculate_density_force(self, flattened))
+        print('v', calculate_viscous_force(self, flattened))
 
-                force += self.calculate(particle)
+        force += calculate_density_force(self, flattened)
+        force += calculate_viscous_force(self, flattened)
 
         self.new_velocity = self.velocity + force / self.density * time_step
         self.new_position = self.position + self.new_velocity * time_step
 
-        print(self.new_position)
-
-        # handle x bounds
-        if self.new_position[0] <= 0.0:
-            print('hi 1')
-            self.new_position[0] = 0.1
-            self.new_velocity[0] *= -1
+        # x boundaries
+        if self.new_position[0] < 0:
+            self.new_position[0] = 0.0
+            self.new_velocity[0] *= -0.9
         elif self.new_position[0] > pygame.display.get_surface().get_size()[0]:
-            print('hi 2')
-            self.new_position[0] = np.float64(
-                pygame.display.get_surface().get_size()[0]
-            )
-            self.new_velocity[0] *= -1
+            self.new_position[0] = pygame.display.get_surface().get_size()[0]
+            self.new_velocity[0] *= -0.9
 
-        # handle y bounds
-        if self.new_position[1] <= 0.0:
-            print('hi 3')
-            self.new_position[1] = 0.1
-            self.new_velocity[1] *= -1
+        # y boundaries
+        if self.new_position[1] < 0:
+            self.new_position[1] = 0.0
+            self.new_velocity[1] *= -0.9
         elif self.new_position[1] > pygame.display.get_surface().get_size()[1]:
-            print('hi 4')
-            self.new_position[1] = np.float64(
-                pygame.display.get_surface().get_size()[1]
-            )
-            self.new_velocity[1] *= -1
+            self.new_position[1] = pygame.display.get_surface().get_size()[1]
+            self.new_velocity[1] *= -0.9
 
-    def calculate(self, other):
-        force = np.array([0.0, 0.0])
-        force += pressure_force(self, other) + viscous_force(self, other)
-        return force
-
-    def update_display(self):
-        self.velocity = self.new_velocity
+    def post_update(self):
         self.position = self.new_position
-
+        self.velocity = self.new_velocity
+        print(self.position)
         self.rect.x = int(self.position[0])
         self.rect.y = int(pygame.display.get_surface().get_size()[1] - self.position[1])
+
+    def flatten_neighbors(self, groups):
+        particles = []
+        for group in groups:
+            for particle in group:
+                particles.append(particle)
+
+        return particles

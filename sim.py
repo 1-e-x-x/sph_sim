@@ -15,7 +15,7 @@ class SimulationContext:
                 self.segments[i][j] = pygame.sprite.Group()
 
         self.current_time = 0.0
-        self.time_step = 0.000000001
+        self.time_step = 10
 
     def add_object(self, *objects):
         for obj in objects:
@@ -29,12 +29,17 @@ class SimulationContext:
 
         for i in range(len(self.segments)):
             for j in range(len(self.segments[i])):
+                for particle in self.segments[i][j].sprites():
+                    particle.pre_update([self.segments[x, y] for x, y in self.get_neighbors(i, j)])
+
+        for i in range(len(self.segments)):
+            for j in range(len(self.segments[i])):
                 self.segments[i][j].update(self.time_step, [self.segments[x, y] for x, y in self.get_neighbors(i, j)])
 
         for i in range(len(self.segments)):
             for j in range(len(self.segments[i])):
                 for particle in self.segments[i][j].sprites():
-                    particle.update_display()
+                    particle.post_update()
                     if int(particle.position[0] // self.segment_width) != i or \
                         int(particle.position[1] // self.segment_height) != j:
                         self.segments[i][j].remove(particle)
