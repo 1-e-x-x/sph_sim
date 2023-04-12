@@ -10,13 +10,22 @@ class SimulationContext:
         self.segment_width = pygame.display.get_surface().get_size()[0] // 3 + 1
         self.segment_height = pygame.display.get_surface().get_size()[1] // 3 + 1
 
+        self.add_tick = 200
+        self.tick = 1
+
         self.group = pygame.sprite.Group()
-        self.time_step = 0.0001
+        self.time_step = 0.01
 
     def add_object(self, *objects):
         self.group.add(objects)
 
     def update(self):
+        self.tick += 1
+        if self.tick % self.add_tick == 0 and len(self.group.sprites()) < 1000:
+            new = Particle(1, np.array([200.0, 400.0]), np.array([0.0, 0.0]))
+            self.add_object(new)
+            self.tick = 1
+
         pygame.display.get_surface().fill(BLACK)
         neighbors, distances = self.get_neighbors()
 

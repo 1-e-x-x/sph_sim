@@ -6,7 +6,7 @@ from scipy import constants
 BLACK = (0, 0, 0)
 BLUE = (0, 0, 255)
 
-SMOOTHER = 10
+SMOOTHER = 50
 
 
 def calculate_density(particle, distances):
@@ -76,7 +76,7 @@ class Particle(pygame.sprite.Sprite):
         self.pressure = calculate_pressure(self)
 
     def update(self, time_step, neighbors, distances):
-        force = np.array([0.0, -constants.g])
+        force = np.array([0.0, -0.1])
 
         force += calculate_pressure_force(self, neighbors, distances)
         force += calculate_viscous_force(self, neighbors, distances)
@@ -85,11 +85,11 @@ class Particle(pygame.sprite.Sprite):
         self.new_position = self.position + self.new_velocity * time_step
 
         # x boundaries
-        if self.new_position[0] < self.size:
-            self.new_position[0] = self.size
+        if self.new_position[0] < 0.0:
+            self.new_position[0] = 0.0
             self.new_velocity[0] *= -0.2
-        elif self.new_position[0] > pygame.display.get_surface().get_size()[0]:
-            self.new_position[0] = pygame.display.get_surface().get_size()[0]
+        elif self.new_position[0] > pygame.display.get_surface().get_size()[0] - self.size:
+            self.new_position[0] = pygame.display.get_surface().get_size()[0] - self.size
             self.new_velocity[0] *= -0.2
 
         # y boundaries
